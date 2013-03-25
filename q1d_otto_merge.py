@@ -101,8 +101,12 @@ def WasPowerSpectrum(data,L):
     ic  = np.fft.fftshift(c)
     Deltax  = 2*L/c.size
     fft = np.fft.fft(ic)*Deltax
-    # Pi wegen Exp(i\pi)ax)->Exp(ikx)
-    fftachse=np.pi*np.fft.fftfreq(ic.size,L/ic.size)
+	 # Falsch, aber äquivalent zur neuen Version:
+    # # Pi wegen Exp(i\pi)ax)->Exp(ikx)
+    # fftachse=np.pi*np.fft.fftfreq(ic.size,L/ic.size)
+
+    # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
+    fftachse=2*np.pi*np.fft.fftfreq(ic.size,Deltax)
     return [fftachse,fft]
 
 def WasFTC(data,L,uptok=400,Deltak=1):
@@ -172,6 +176,8 @@ def TasRFTddCSquare(data,L):
     Deltax=2*L/ddc.size
     rfft  = 2.0*np.fft.rfft(data**2)*Deltax 
     # Pi wegen Exp(-i\pi)ax)->Exp(-ikx)
+	 print "ACHTUNG: Hier muss noch was korrigiert werden!, *np.pi ist falsch
+	 und L als letzter Parameter auch " # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
     freq= np.pi*rfftfreq(rfft.size,L)
     return freq,rfft
 
@@ -181,8 +187,8 @@ def TasFFTddCSquare(data,L):
     iddc = np.fft.fftshift(ddc)
     Deltax=2*L/ddc.size
     fft   = np.fft.fft(iddc**2)*Deltax 
-    # Pi wegen Exp(i\pi)ax)->Exp(ikx)
-    fftfreq=np.pi*np.fft.fftfreq(iddc.size,L/iddc.size)
+    # 2Pi wegen Exp(i2\pi*ax)->Exp(ikx)
+    fftfreq=2*np.pi*np.fft.fftfreq(iddc.size,Deltax)
     return fftfreq,fft
 
 # DIE FUNKTIONIEREN NOCH NICHT
