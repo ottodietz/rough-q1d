@@ -18,7 +18,7 @@ def HoleDaten(NrRepetitions,randomize=False):
         reihe = 0
     data = np.loadtxt("/home/otto/dat/corred_and_shuffeled.dat")[:,reihe]
     data = (0.8 + data*0.2 )/100.; # in mm
-    data = ZeroMean(data)
+    data = q1d_utils.ZeroMean(data)
     data,sigma = q1d_utils.NormVar(data)
     data = np.array([ [ a ] * NrRepetitions for a in data]).flatten()
     return [data,sigma,L]
@@ -28,22 +28,9 @@ def HoleCNCDaten():
        L=0.8
        file = '/home/otto/dat/CNC/px260.dat'
        achse,data=np.loadtxt(file,unpack=True)
-       data = ZeroMean(data)/1000. # in Meter
+       data = q1d_utils.ZeroMean(data)/1000. # in Meter
        data,sigma = q1d_utils.NormVar(data)
        return [data,sigma,L]
-
-def WasPowerSpectrum(data,L):
-    c   = q1d_utils.NormAutoCorr(data)
-    ic  = np.fft.fftshift(c)
-    Deltax  = 2*L/c.size
-    fft = np.fft.fft(ic)*Deltax
-	 # Falsch, aber äquivalent zur neuen Version:
-    # # Pi wegen Exp(i\pi)ax)->Exp(ikx)
-    # fftachse=np.pi*np.fft.fftfreq(ic.size,L/ic.size)
-
-    # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
-    fftachse=2*np.pi*np.fft.fftfreq(ic.size,Deltax)
-    return [fftachse,fft]
 
 def rfftfreq(n_rfft,L):
     """ np.fft.fftfreq pendant for rfft: only generate positive  frequencies 
@@ -65,8 +52,8 @@ def symaxis(c):
 
 def TasFTddCSquare(data,L,uptok=400):
     c = q1d_utils.NormAutoCorr(data)
-    x,ddc = Diff2(c,-L,L)
-    # Diff2 liefert array von -L bis L, daher *2
+    x,ddc = q1d_utils.Diff2(c,-L,L)
+    # q1d_utils.Diff2 liefert array von -L bis L, daher *2
     Deltax=2*L/ddc.size
     kachse = np.linspace(0,uptok,uptok)
     i = 1j
@@ -103,7 +90,8 @@ def Wk(data,L,uptok=400):
 
 def WandT2k(data,L,upto=400):
     """ Calculate both W and T and scale to T(2k) and W(2k) """ 
-    assert L>0.1, 'L und sigma möglicherweise vertauscht'
+    if L<0.1:
+   	print 'Achtung L>0.1! L und sigma möglicherweise vertauscht?'
     kachseT,T = Tk(data,L,upto)
     kachseW,W = Wk(data,L,upto)
     assert (kachseW == kachseT).all(), 'Achtung Achsen falsch!'

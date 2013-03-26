@@ -1,6 +1,20 @@
 
 # Other implementations
 
+def WasPowerSpectrum(data,L):
+    c   = q1d_utils.NormAutoCorr(data)
+    ic  = np.fft.fftshift(c)
+    Deltax  = 2*L/c.size
+    fft = np.fft.fft(ic)*Deltax
+	 # Falsch, aber äquivalent zur neuen Version:
+    # # Pi wegen Exp(i\pi)ax)->Exp(ikx)
+    # fftachse=np.pi*np.fft.fftfreq(ic.size,L/ic.size)
+
+    # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
+    fftachse=2*np.pi*np.fft.fftfreq(ic.size,Deltax)
+    return [fftachse,fft]
+
+
 def TasRFTddCSquare(data,L):
     c = NormAutoCorr(data)
     x,ddc = Diff2(c,-L,L)
