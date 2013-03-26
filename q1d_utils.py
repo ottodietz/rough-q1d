@@ -6,6 +6,8 @@
 from __future__ import division
 
 import numpy as np
+from q1d_smooth import *
+from q1d_loc_length import *
 
 c = 2.99792458e8 # m/s
 
@@ -71,8 +73,34 @@ def Diff(x,vonL,bisL):
 
 
 def NormAutoCorr(x):
-	 """ correlate x with itself and normalize to C(0)=1 """
+    """ correlate x with itself and normalize to C(0)=1 """
     result = np.correlate(x, x, mode='full')
     result=result/result.max()
     return result
 
+
+def HoleDaten(NrRepetitions,randomize=False):
+    L = 30*5*2./1000. # 30 Pins a 5mm, jeder Pin doppel (*3) in Meter (/1000)
+    if randomize:
+        reihe = 1
+    else:
+        reihe = 0
+    data = np.loadtxt("data/corred_and_shuffeled.dat")[:,reihe]
+    data = (0.8 + data*0.2 )/100.; # in mm
+    data = ZeroMean(data)
+    data,sigma = NormVar(data)
+    data = np.array([ [ a ] * NrRepetitions for a in data]).flatten()
+    return [data,sigma,L]
+
+
+def HoleCNCDaten():
+       L=0.8
+       file = 'data/px260.dat'
+       achse,data=np.loadtxt(file,unpack=True)
+       data = ZeroMean(data)/1000. # in Meter
+       data,sigma = NormVar(data)
+       return [data,sigma,L]
+
+
+if __name__ == "__main__":
+		  pass

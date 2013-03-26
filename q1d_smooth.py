@@ -4,8 +4,8 @@
 # Sonst ist a/b=0 für a=2 und b=1
 # aber a/b=0.5 für a=2. und b=1
 from __future__ import division
-
 import numpy as np
+import q1d_utils
 
 
 
@@ -19,7 +19,7 @@ def HoleDaten(NrRepetitions,randomize=False):
     data = np.loadtxt("/home/otto/dat/corred_and_shuffeled.dat")[:,reihe]
     data = (0.8 + data*0.2 )/100.; # in mm
     data = ZeroMean(data)
-    data,sigma = NormVar(data)
+    data,sigma = q1d_utils.NormVar(data)
     data = np.array([ [ a ] * NrRepetitions for a in data]).flatten()
     return [data,sigma,L]
 
@@ -29,11 +29,11 @@ def HoleCNCDaten():
        file = '/home/otto/dat/CNC/px260.dat'
        achse,data=np.loadtxt(file,unpack=True)
        data = ZeroMean(data)/1000. # in Meter
-       data,sigma = NormVar(data)
+       data,sigma = q1d_utils.NormVar(data)
        return [data,sigma,L]
 
 def WasPowerSpectrum(data,L):
-    c   = NormAutoCorr(data)
+    c   = q1d_utils.NormAutoCorr(data)
     ic  = np.fft.fftshift(c)
     Deltax  = 2*L/c.size
     fft = np.fft.fft(ic)*Deltax
@@ -44,21 +44,6 @@ def WasPowerSpectrum(data,L):
     # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
     fftachse=2*np.pi*np.fft.fftfreq(ic.size,Deltax)
     return [fftachse,fft]
-
-def WasFTC(data,L,uptok=400,Deltak=1):
-    c = NormAutoCorr(data)
-    x = np.linspace(-L,L,c.size)
-    Deltax=np.diff(x).mean() # = 2*L/c.size sonst
-    assert 2*L/c.size - np.diff(x).mean() < 1e-6, 'Delta x falsch'
-    kachse = np.linspace(0,uptok,int(uptok/Deltak))
-    i = 1j
-    W = [ (np.exp(-i*k*x)*c).sum()*Deltax for k in kachse ]
-    ImagReRatio = max(np.imag(W)/np.real(W))
-    if ImagReRatio > 1e-5:
-        print('WasFTC liefert imaginäres Ergebnis!i') 
-        print('Wir verwerfen das! Ratio war Im/Re ='+str(ImagReRatio))
-    W=np.real(W)
-    return [ kachse,W ]
 
 def rfftfreq(n_rfft,L):
     """ np.fft.fftfreq pendant for rfft: only generate positive  frequencies 
@@ -76,18 +61,10 @@ def symaxis(c):
     """ Shift c[0] to the center of the array and mirror it, multiplied by -1"""
     return np.concatenate((-1*c[:0:-1],c))
 
-
 # Aktuell beste Funktion für T:
-def Tk(data,L,uptok=400):
-    return TasFTddCSquare(data,L,uptok)
-
-# Aktuell beste Funktion für W:
-def Wk(data,L,uptok=400):
-    return WasFTC(data,L,uptok)
-
 
 def TasFTddCSquare(data,L,uptok=400):
-    c = NormAutoCorr(data)
+    c = q1d_utils.NormAutoCorr(data)
     x,ddc = Diff2(c,-L,L)
     # Diff2 liefert array von -L bis L, daher *2
     Deltax=2*L/ddc.size
@@ -101,58 +78,31 @@ def TasFTddCSquare(data,L,uptok=400):
         print('TasFTddCSquare liefert imaginäres Ergebnis! Ratio Imag/Re ='+str(ImagReRatio))
     return [ kachse,T ]
 
-def TasRFTddCSquare(data,L):
-    c = NormAutoCorr(data)
-    x,ddc = Diff2(c,-L,L)
-    #Das ganze als rfft
-    # 2.0 * rfft = fft 
-    # weil fft doppelt so lang ist.
-    # bzw. rfft nur über das halbe Array geht
-    data = ddc[ddc.size/2:]
-    Deltax=2*L/ddc.size
-    rfft  = 2.0*np.fft.rfft(data**2)*Deltax 
-    # Pi wegen Exp(-i\pi)ax)->Exp(-ikx)
-	 print "ACHTUNG: Hier muss noch was korrigiert werden!, *np.pi ist falsch
-	 und L als letzter Parameter auch " # 2 Pi wegen Exp(i*2*pi*a*x)->Exp(ikx)
-    freq= np.pi*rfftfreq(rfft.size,L)
-    return freq,rfft
+def Tk(data,L,uptok=400):
+    return TasFTddCSquare(data,L,uptok)
 
-def TasFFTddCSquare(data,L):
-    c = NormAutoCorr(data)
-    x,ddc = Diff2(c,-L,L)
-    iddc = np.fft.fftshift(ddc)
-    Deltax=2*L/ddc.size
-    fft   = np.fft.fft(iddc**2)*Deltax 
-    # 2Pi wegen Exp(i2\pi*ax)->Exp(ikx)
-    fftfreq=2*np.pi*np.fft.fftfreq(iddc.size,Deltax)
-    return fftfreq,fft
+# Aktuell beste Funktion für W:
 
-# DIE FUNKTIONIEREN NOCH NICHT
-def BROKENTasConv(sdata,L):
-    xi_k=np.fft.rfft(sdata)
-    k=rfftfreq(xi_k.size,L)# b.size=sdata.size+1
-    c=abs(k*xi_k)**2
-    c=symarray(c)
-    k=symaxis(k)
-    return k,np.convolve(c,c,mode='same')
+def WasFTC(data,L,uptok=400,Deltak=1):
+    c = q1d_utils.NormAutoCorr(data)
+    x = np.linspace(-L,L,c.size)
+    Deltax=np.diff(x).mean() # = 2*L/c.size sonst
+    assert 2*L/c.size - np.diff(x).mean() < 1e-6, 'Delta x falsch'
+    kachse = np.linspace(0,uptok,int(uptok/Deltak))
+    i = 1j
+    W = [ (np.exp(-i*k*x)*c).sum()*Deltax for k in kachse ]
+    ImagReRatio = max(np.imag(W)/np.real(W))
+    if ImagReRatio > 1e-5:
+        print('WasFTC liefert imaginäres Ergebnis!i') 
+        print('Wir verwerfen das! Ratio war Im/Re ='+str(ImagReRatio))
+    W=np.real(W)
+    return [ kachse,W ]
 
-def BROKENTasFTC1Square(x,L,window):
-    achse,diffx = SmoothDiff(x,L,window)
-    cdiffx = np.correlate(diffx, diffx, mode='full')
-    # N1 = (diffx**2).sum() # Sum over \xi'(x)^2 == np.correlate(diffx, diffx, mode='full')
-    # N1 = (diffx**2).sum()*L/diffx.size # Integral over \xi'(x)^2 
-    #    ==  L/diffx.size*np.correlate(diffx, diffx, mode='full')
-    dx = L/diffx.size
-    cdiffx =  cdiffx*dx
-    # np.correlate reutrns centered array, i.e., f(0) is at N/2
-    # fft needs f(0) to be at 0, and positive freq components at 1..N/2
-    # negative freq components at N/2..N. fftshift fixes this
-    cdiffx   = np.fft.fftshift(cdiffx)
-    fftachse = np.fft.fftfreq(cdiffx.size,dx)
-    fft = np.fft.fft(cdiffx**2)/L**2 # L=N0
-    return [fftachse,fft]
+def Wk(data,L,uptok=400):
+    return WasFTC(data,L,uptok)
 
 def WandT2k(data,L,upto=400):
+    """ Calculate both W and T and scale to T(2k) and W(2k) """ 
     assert L>0.1, 'L und sigma möglicherweise vertauscht'
     kachseT,T = Tk(data,L,upto)
     kachseW,W = Wk(data,L,upto)
