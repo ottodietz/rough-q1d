@@ -1,7 +1,5 @@
-rough-q1d
-=========
-
-### Welcome to rough-scaled python
+Welcome to rough-scaled python
+==============================
 
 Tools to analyse rough boundary in quasi-one dimensional systems for python.
 
@@ -18,17 +16,23 @@ export PYTHONPATH=$PYTHONPATH:/home/otto/python/rough-q1d
 Then you can import all functions via 
 
 ```
->>> import q1d
+import q1d
 ```
 
 all other files, are imported in q1d.py.
 
 ### Files
+
 ```
-q1d.py: general functions (wavelength<->wavevector conversion, etc)
-q1d-rough.py: functions for analyzing smooth rough boundaries
-q1d-step.py: functions for analyzing step-like rough boundaries.
+q1d.py: main module file. All q1d_* files are imported in here.
+q1d_loc_length.py : functions for calculate localization length 
+q1d_step.py: functions for analyzing step-like rough boundaries
+q1d_smooth.py: functions for analyzing smooth rough boundaries
+q1d_utils.py: utility functions
+q1d_other_fft_implementations.py: not in use.
+q1d_joerg_merge.py: will be integrated to the other files above.
 ```
+
 ### Authors
 Written by Jörg Doppler (TU Wien, @jdoppler) and Otto Dietz (HU Berlin, @ottodietz).
 
