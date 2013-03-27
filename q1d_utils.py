@@ -11,6 +11,16 @@ from q1d_loc_length import *
 
 c = 2.99792458e8 # m/s
 
+def NormLtoOne(Lorig,length):
+    """ 
+	 Calculate normalized length, for systems where 
+	 L_orig was normalized to L=1 
+	 """
+    print "L was ",Lorig, " but has been set to 1"
+    print "so ",length," -> ", length/Lorig
+    return length/Lorig
+
+
 def frq2k(nu):
     return 2. * np.pi *  nu /c;#(*1/s -> 1/m*)
 
