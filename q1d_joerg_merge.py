@@ -8,15 +8,15 @@ import matplotlib.pyplot as plt
 # Constants
 # ---------------------------------------------
 alphaFile="CNC.dat"                     # input file for boundary data
-expFile_corr = "T11_rscb.dat"           # input file T_33 correlated boundary (experiment)
-expFile_shuffle = "T11_rsrb.dat"        # input file T_33 random boundary (experiment)
-simFile_corr = "T11_sim_c.dat"          # input file T_33 correlated boundary (simulation)
-simFile_shuffle = "T11_sim_s.dat"       # input file T_33 random boundary (simulation)
+mode = "2"
+expFile_corr, expFile_shuffle = [ "T" + 2*mode + "_" + x + ".dat" for x in "rscb", "rsrb" ]
+simFile_corr, simFile_shuffle = [ "T" + 2*mode + "_sim_" + x + ".dat" for x in "c", "s" ]
 #
 delta = 0.01                            # module width
 smearing = 0.0001                       # step-smearing
 wireLength = 0.3                        # wire length L
 wireWidth = 0.1                         # wire width d
+#
 sampleLength = (wireLength+400.*delta)  # sampling length
 dx = .00005                             # step-length in x-space
 dk = 2.*pi/sampleLength                 # step-length in k-space
@@ -27,56 +27,71 @@ kRangeNew = np.arange(0.01,200,0.25)                      # k-values for plot: (
 # ---------------------------------------------
 # Read data files and generate pin heights
 # ---------------------------------------------
-alpha = alpha_corr, alpha_shuffle = [ (x - x.mean()) for x in ( (0.8 + 0.2*y)/100 for y in np.loadtxt(alphaFile,unpack=True) )]
-exp = exp_corr, exp_shuffle = [ np.loadtxt(i,unpack=True) for i in (expFile_corr,expFile_shuffle)]
-sim = sim_corr, sim_shuffle = [ np.loadtxt(i,unpack=True) for i in (simFile_corr,simFile_shuffle)]
-#alpha_shuffle = np.random.uniform(-sqrt(3.),sqrt(3.), size=alpha_shuffle.size)
+alpha = alpha_corr, alpha_shuffle = [ (x - x.mean()) for x in ( (0.8 + 0.2*y)/100 for
+                                            y in np.loadtxt(alphaFile,unpack=True) ) ]
+exp = exp_corr, exp_shuffle = [ np.loadtxt(i,unpack=True) for
+                                i in (expFile_corr,expFile_shuffle)]
+sim = sim_corr, sim_shuffle = [ np.loadtxt(i,unpack=True) for
+                                i in (simFile_corr,simFile_shuffle)]
+#alpha_shuffle = np.random.uniform(-sqrt(3.),sqrt(3.), size=alpha_shuffle.size) # randomly chosen steps
 
 # ---------------------------------------------
 # Function definitions
 # ---------------------------------------------
-def build_wire(x,alpha,delta,smearing):                 # Return wire sum_(n=-N,N) alpha_n step(x-n*Delta)
+def build_wire(x,alpha,delta,smearing):
     "Return sum_(n=-N,N) alpha_n step(x-n*Delta)"
-    def step(x,delta,smearing):         # smoothed step function Fermi(x-Delta)-Fermi(x)
+    
+    def step(x,delta,smearing):
         "Return smoothed step-function Fermi(x-Delta)-Fermi(x)"
         return 1./(1.+np.exp((x-delta)/smearing))-1./(1.+np.exp(x/smearing))
-    nModules = alpha.size
+    
+    module_number = alpha.size
     temp_wire = np.zeros(x.size)
-    for n in np.arange(nModules):
-        temp_wire = temp_wire + alpha[n] * step(x - (n-nModules/2.)*delta,delta,smearing)
+    for n in np.arange(module_number):
+        temp_wire = ( temp_wire + alpha[n] *
+                        step(x - (n-module_number/2.)*delta,delta,smearing) )
     return temp_wire
 
-def fourier(data):                                      # Return Fourier transform of input data
+def fourier(data):
     "Return Fourier transform of input data"
     return fftshift(abs(fft(data)*dx))**2
 
-def W_analytic(k,alpha,delta,smearing):                 # Return roughness-height power spectrum W(k)
+def W_analytic(k,alpha,delta,smearing):
     "Return roughness-height power spectrum W(k)"
-    r = np.arange(alpha.size)
-    omega = ([ np.exp(-1j*n*k*delta)*alpha[n] for n in r] ) # take into account correlation of alphas
+    module_index = np.arange(alpha.size)
+    # Take correlation of alphas into account:
+    omega = ([ np.exp(-1j*n*k*delta)*alpha[n] for n in module_index] )
     omega = np.sum(omega,axis=0)
     omega = abs(omega)**2 / alpha.size
-    return ( 1./delta * (2.*pi*smearing*np.sinh(k*pi*smearing)**(-1)*np.sin(k*delta/2.))**2 ) * omega
+    return ( 1./delta * (2.*pi*smearing*
+                np.sinh(k*pi*smearing)**(-1)*np.sin(k*delta/2.))**2 ) * omega
 
-def S_analytic(k,alpha,delta,smearing):                 # Return roughness-height power spectrum S(k)
+def S_analytic(k,alpha,delta,smearing):
     "Return roughness-height power spectrum S(k)"
-    r = np.arange(alpha.size)
-    a = np.concatenate([ [0],alpha,[0] ])   # a[n-1] and a[n+1] = 0 for n=N and n=0
-    omega = ([ np.exp(-1j*n*k*delta)*(a[n]*(a[n]-a[n+1])*np.exp(-1j*k*delta) + a[n]*(a[n]-a[n-1])) for n in r] ) # take into account correlation of alphas
+    module_index = np.arange(alpha.size)
+    a = np.concatenate([ [0],alpha,[0] ])  # a[n-1] and a[n+1] = 0 for n=N and n=0
+    # Take correlation of alphas into account:
+    omega = ([ np.exp(-1j*n*k*delta)*(a[n]*(a[n]-a[n+1])*
+                np.exp(-1j*k*delta) + a[n]*(a[n]-a[n-1])) for n in module_index] )
     omega = np.sum(omega,axis=0)  
     omega = abs(omega)**2 / alpha.size 
-    return ( 1./delta / 72. * (k*pi*(1.+k**2*smearing**2)*np.sinh(k*pi*smearing)**(-1))**2 ) * omega
+    return ( 1./delta / 72. * (k*pi*(1.+k**2*smearing**2)*
+                            np.sinh(k*pi*smearing)**(-1))**2 ) * omega
 
-def T_analytic(n,d,L,sigma,k,alpha,delta,smearing):     # Return transmission T based on analytical expressions for W and S
+def T_analytic(n,d,L,sigma,k,alpha,delta,smearing):
     "Return transmission T based on analytical expressions for W and S"
-    invLbAGS=4.*sigma**2 / d**6 *(n*pi)**4 / k**2 * W_analytic(2*k,alpha,delta,smearing)
-    invLbSGS=0.5*(sigma/d*pi*n)**4 / k**2 * (1./3. + 1./(pi*n)**2)**2 * S_analytic(2*k,alpha,delta,smearing)
+    invLbAGS=( 4.*sigma**2 / d**6 *(n*pi)**4 /
+                k**2 * W_analytic(2*k,alpha,delta,smearing) )
+    invLbSGS=( 0.5*(sigma/d*pi*n)**4 / k**2 *
+                (1./3. + 1./(pi*n)**2)**2 * S_analytic(2*k,alpha,delta,smearing) )
     return np.exp(-L*(invLbAGS+invLbSGS)), invLbAGS, invLbSGS
 
-def T_numeric(n,d,L,sigma,kOld,kNew,W,S):               # Return transmission T based on numerical expressions for W and S
+def T_numeric(n,d,L,sigma,kOld,kNew,W,S):
     "Return transmission T based on numerical expressions for W and S"
-    kOld, W, S = [ x[len(x)/2:] for x in (kOld, W, S)]                  # W and S are symmetric w.r.t. k - use only positive k-values for interpolation
-    W, S = [ interp1d(kOld,x, kind="cubic")(2.*kNew) for x in (W, S) ]  # find interpolating values at kNew
+    # W and S are symmetric w.r.t. k - use only positive k-values for interpolation:
+    kOld, W, S = [ x[len(x)/2:] for x in (kOld, W, S)]
+    # Find interpolating values at k-values kNew:
+    W, S = [ interp1d(kOld,x, kind="cubic")(2.*kNew) for x in (W, S) ]
     invLbAGS=4.*sigma**2 / d**6 *(n*pi)**4 / kNew**2 * W
     invLbSGS=0.5*(sigma/d*pi*n)**4 / kNew**2 * (1./3. + 1./(pi*n)**2)**2 * S
     return np.exp(-L*(invLbAGS+invLbSGS)), invLbAGS, invLbSGS
@@ -86,28 +101,23 @@ def T_numeric(n,d,L,sigma,kOld,kNew,W,S):               # Return transmission T 
 # ---------------------------------------------
 if True:
     # ---------------------------------------------
-    # Transmission T(k), 1/L^(b,AGS), 1/L^(b,SGS)
-    # ---------------------------------------------
-    T, invLbAGS, invLbSGS = T_analytic(3,wireWidth,wireLength,1.,kRangeNew,alpha_shuffle,delta,smearing)
-    
-    # ---------------------------------------------
     # Plot data: T (theory, simulation, experiment)
     # ---------------------------------------------
-    smearing_scan = np.arange(0.0005,0.002,0.0005)
     smearing_scan = [ 0.001 ]
     
-    for alpha, exp, sim, subplotindex, label in zip( alpha, exp, sim, (1,2), ("Correlated","Shuffled") ):
+    for alpha, exp, sim, subplotindex, label in zip( alpha, exp, sim, [1,2], ["Correlated","Shuffled"] ):
         plt.subplot(2,1,subplotindex)
+        plt.semilogy(sim[0],sim[6],"r-o",label=r"$T_{%s}$ simulation" % (2*mode) )  # simulation results
+        plt.semilogy(exp[0],exp[1]*1000,"k-",label=r"$T_{%s}$ experiment ($\times 10^3$)" % (2*mode) )  # experimental results
         for s in smearing_scan:
-            t,_,_ = T_analytic(1,wireWidth,wireLength,1.,kRangeNew,alpha,delta,s)
-            plt.semilogy(kRangeNew,t,label=r"$T_33(k_3)$ ($\sigma$ = {0} )".format(s) )        # theory
-        plt.semilogy(sim[0],sim[5],"r-o",label=r"$T_{33}(k_3)$ simulation")                      # simulation results
-        plt.semilogy(exp[0],exp[1]*1000,"k-",label=r"$T_{33}(k_3)$ experiment ($\times 10^3$)")  # experimental results
+            T,_,_ = T_analytic(int(mode),wireWidth,wireLength,1.,kRangeNew,alpha,delta,s)
+            plt.semilogy(kRangeNew,T,label=r"$T_{%s}$ ($\sigma$ = %g)" % (2*mode,s) )  # theory
         plt.title(label)
         plt.ylim(1e-7,1e1)
         plt.xlim(0,100)
-        plt.legend(loc=3,ncol=1,bbox_to_anchor=(0.7,0))
-    plt.xlabel(r"$k_3$")
+        plt.legend(loc=4)
+        plt.ylabel(r"$T_{%s}$" % (2*mode),fontsize="x-large")
+    plt.xlabel(r"$k_x$",fontsize="x-large")
     plt.show()
 
 # ---------------------------------------------
@@ -117,16 +127,16 @@ if False:
     # ---------------------------------------------
     # Fourier transform for roughness-height power spectrum W(k)
     # ---------------------------------------------
-    xi = xi_corr, xi_shuffle = [ build_wire(xRange,a,delta,smearing) for a in alpha ]               # discretized wire profile xi(x)
-    W_numeric_corr, W_numeric_shuffle = [ fourier(i) / wireLength for i in xi ]                  # Fourier transform wire profile xi and shift data (centered zero frequency)
-    W_analytic_corr, W_analytic_shuffle = [ W_analytic(kRange,a,delta,smearing) for a in alpha  ]   # analytical W(k)
+    xi = xi_corr, xi_shuffle = [ build_wire(xRange,a,delta,smearing) for a in alpha ]  # discretized wire profile xi(x)
+    W_numeric_corr, W_numeric_shuffle = [ fourier(i) / wireLength for i in xi ]  # Fourier transform wire profile xi and shift data (centered zero frequency)
+    W_analytic_corr, W_analytic_shuffle = [ W_analytic(kRange,a,delta,smearing) for a in alpha  ]  # analytical W(k)
     
     # ---------------------------------------------
     # Fourier transform for square-gradient power spectrum S(k)
     # ---------------------------------------------
-    xipsq = xipsq_corr, xipsq_shuffle = [ np.gradient(x/dx)**2 for x in xi ]                        # discretized square gradient xi'(x)^2
-    S_numeric_corr, S_numeric_shuffle = [ fourier(i) / wireLength / 2 for i in xipsq ]           # factor 1/2 from <V(x)V(x')> correlator definition
-    S_analytic_corr, S_analytic_shuffle = [ S_analytic(kRange,a,delta,smearing) for a in alpha  ]   # analytical S(k)
+    xipsq = xipsq_corr, xipsq_shuffle = [ np.gradient(x/dx)**2 for x in xi ]  # discretized square gradient xi'(x)^2
+    S_numeric_corr, S_numeric_shuffle = [ fourier(i) / wireLength / 2 for i in xipsq ]  # factor 1/2 from <V(x)V(x')> correlator definition
+    S_analytic_corr, S_analytic_shuffle = [ S_analytic(kRange,a,delta,smearing) for a in alpha  ]  # analytical S(k)
     
     # ---------------------------------------------
     # Transmission T(k), 1/L^(b,AGS), 1/L^(b,SGS)
