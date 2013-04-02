@@ -1,3 +1,6 @@
+import sys
+import getopt
+import argparse
 import numpy as np
 from numpy.fft import fft, fftshift
 from scipy.interpolate import interp1d
@@ -5,15 +8,32 @@ from math import *
 import matplotlib.pyplot as plt
 
 # ---------------------------------------------
+# Parsing command-line arguments
+# ---------------------------------------------
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--mode", default="1",
+                    help="set wire mode" )
+parser.add_argument("-s", "--smearing", default="0.001", type=float, nargs='+',
+                    help="set smearing parameter (allows multiple arguments)" )
+parser.add_argument("-e", "--experimental-data", default="../Exp_data/",
+                    help="set directory to experimental data" )
+parser.add_argument("-n", "--numerical-data", default="../Num_data/",
+                    help="set directory to numerical" )
+args = parser.parse_args()
+
+mode = args.mode
+smearing = args.smearing
+exp_path = args.experimental_data
+num_path = args.numerical_data
+
+# ---------------------------------------------
 # Constants
 # ---------------------------------------------
-alphaFile="CNC.dat"                     # input file for boundary data
-mode = "2"
-expFile_corr, expFile_shuffle = [ "T" + 2*mode + "_" + x + ".dat" for x in "rscb", "rsrb" ]
-simFile_corr, simFile_shuffle = [ "T" + 2*mode + "_sim_" + x + ".dat" for x in "c", "s" ]
+alphaFile="corred_and_shuffeled.dat"  # input file for boundary data
+expFile_corr, expFile_shuffle = [ exp_path + x + "_mode" + mode + "_kx.dat" for x in "rscb", "rsrb" ]
+numFile_corr, numFile_shuffle = [ num_path + "T" + 2*mode + "_num_" + x + ".dat" for x in "c", "s" ]
 #
 delta = 0.01                            # module width
-smearing = 0.0001                       # step-smearing
 wireLength = 0.3                        # wire length L
 wireWidth = 0.1                         # wire width d
 #
@@ -31,8 +51,8 @@ alpha = alpha_corr, alpha_shuffle = [ (x - x.mean()) for x in ( (0.8 + 0.2*y)/10
                                             y in np.loadtxt(alphaFile,unpack=True) ) ]
 exp = exp_corr, exp_shuffle = [ np.loadtxt(i,unpack=True) for
                                 i in (expFile_corr,expFile_shuffle)]
-sim = sim_corr, sim_shuffle = [ np.loadtxt(i,unpack=True) for
-                                i in (simFile_corr,simFile_shuffle)]
+num = num_corr, num_shuffle = [ np.loadtxt(i,unpack=True) for
+                                i in (numFile_corr,numFile_shuffle)]
 #alpha_shuffle = np.random.uniform(-sqrt(3.),sqrt(3.), size=alpha_shuffle.size) # randomly chosen steps
 
 # ---------------------------------------------
@@ -103,18 +123,16 @@ if True:
     # ---------------------------------------------
     # Plot data: T (theory, simulation, experiment)
     # ---------------------------------------------
-    smearing_scan = [ 0.001 ]
-    
-    for alpha, exp, sim, subplotindex, label in zip( alpha, exp, sim, [1,2], ["Correlated","Shuffled"] ):
+    for alpha, exp, num, subplotindex, label in zip( alpha, exp, num, [1,2], ["Correlated","Shuffled"] ):
         plt.subplot(2,1,subplotindex)
-        plt.semilogy(sim[0],sim[6],"r-o",label=r"$T_{%s}$ simulation" % (2*mode) )  # simulation results
+        plt.semilogy(num[0],num[int(mode)+4],"r-o",label=r"$T_{%s}$ simulation" % (2*mode) )  # simulation results
         plt.semilogy(exp[0],exp[1]*1000,"k-",label=r"$T_{%s}$ experiment ($\times 10^3$)" % (2*mode) )  # experimental results
-        for s in smearing_scan:
+        for s in smearing:
             T,_,_ = T_analytic(int(mode),wireWidth,wireLength,1.,kRangeNew,alpha,delta,s)
             plt.semilogy(kRangeNew,T,label=r"$T_{%s}$ ($\sigma$ = %g)" % (2*mode,s) )  # theory
         plt.title(label)
-        plt.ylim(1e-7,1e1)
         plt.xlim(0,100)
+        plt.ylim(1e-7,1e1)
         plt.legend(loc=4)
         plt.ylabel(r"$T_{%s}$" % (2*mode),fontsize="x-large")
     plt.xlabel(r"$k_x$",fontsize="x-large")
