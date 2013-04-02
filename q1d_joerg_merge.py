@@ -13,8 +13,10 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--mode", default="1",
                     help="set wire mode" )
-parser.add_argument("-s", "--smearing", default="0.001", type=float, nargs='+',
+parser.add_argument("-s", "--smearing", default="0.001", nargs="+", type=float, 
                     help="set smearing parameter (allows multiple arguments)" )
+parser.add_argument("-a", "--alpha-data", default="",
+                    help="set directory to pin data" )
 parser.add_argument("-e", "--experimental-data", default="../Exp_data/",
                     help="set directory to experimental data" )
 parser.add_argument("-n", "--numerical-data", default="../Num_data/",
@@ -23,13 +25,16 @@ args = parser.parse_args()
 
 mode = args.mode
 smearing = args.smearing
+if type(smearing) is not list:
+    smearing = [ args.smearing ]
+alpha_path = args.alpha_data
 exp_path = args.experimental_data
 num_path = args.numerical_data
 
 # ---------------------------------------------
 # Constants
 # ---------------------------------------------
-alphaFile="corred_and_shuffeled.dat"  # input file for boundary data
+alphaFile=alpha_path + "corred_and_shuffeled.dat"  # input file for boundary data
 expFile_corr, expFile_shuffle = [ exp_path + x + "_mode" + mode + "_kx.dat" for x in "rscb", "rsrb" ]
 numFile_corr, numFile_shuffle = [ num_path + "T" + 2*mode + "_num_" + x + ".dat" for x in "c", "s" ]
 #
