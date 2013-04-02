@@ -20,7 +20,7 @@ parser.add_argument("-a", "--alpha-data", default="",
 parser.add_argument("-e", "--experimental-data", default="../Exp_data/",
                     help="set directory to experimental data" )
 parser.add_argument("-n", "--numerical-data", default="../Num_data/",
-                    help="set directory to numerical" )
+                    help="set directory to numerical data" )
 args = parser.parse_args()
 
 mode = args.mode
