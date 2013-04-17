@@ -112,6 +112,25 @@ def HoleCNCDaten():
        data,sigma = NormVar(data)
        return [data,sigma,L]
 
+def KeywordEmpty(locals):
+    """ Complain if a keyword supplied to a function is set to None """
+    if None in locals.values():
+        assert False, "Warning: You need to set some more keywords:"\
+            +str([k for k, v in locals.iteritems() if v == None])
+    return False
+
+def keyword_example(otto=None, **kwargs):
+    """ This function needs the otto keyword, if it is not set in kwargs it will stop """
+    assert not KeywordEmpty(locals())
+    return otto
+
+
 
 if __name__ == "__main__":
-		  pass
+
+    system1={}
+    system1['otto']='Ein Argument wurde uebergeben'
+    system1['joerg']='Ein weiteres wurde ignoriert'
+
+    # Important: Do not forget the **-expand!
+    print keyword_example(**system1)
