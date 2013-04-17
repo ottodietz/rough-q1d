@@ -10,7 +10,7 @@ git clone git://github.com/ottodietz/rough-q1d.git
 You might want to add the following line to your ~/.bashrc, to add rough-q1d to your module search-path:
 
 ```
-export PYTHONPATH=$PYTHONPATH:/home/otto/python/rough-q1d
+export PYTHONPATH=$PYTHONPATH:/<PATH TO GIT CLONE>/rough-q1d
 ```
 
 Then you can import all functions via 

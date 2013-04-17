@@ -17,7 +17,8 @@ def NormLtoOne(Lorig,length):
 	 L_orig was normalized to L=1 
 	 """
     print "L was ",Lorig, " but has been set to 1"
-    print "so ",length," -> ", length/Lorig
+    if np.size(length) == 1:
+        print "so ",length," -> ", length/Lorig
     return length/Lorig
 
 
