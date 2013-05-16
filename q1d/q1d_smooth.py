@@ -187,4 +187,4 @@ def OneOverLbsm(n,kachse,W,T,sigma,d=0.1):
 
 def tsm(n,kachse,W,T,sigma,L,d=0.1):
    return np.exp(-L*OneOverLbsm(n,kachse,W,T,sigma,d))
-   # ist gleich exp(-L/Lb)=exp(-1L/Lloc)
+   # ist gleich exp(-L/Lb)=exp(-2L/Lloc)
