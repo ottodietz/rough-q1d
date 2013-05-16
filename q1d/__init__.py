@@ -6,9 +6,9 @@
 from __future__ import division
 
 from q1d_utils 		import *
-from q1d_smooth 		import *
-from q1d_loc_length 	import *
-from q1d_step 	import *
+from q1d_smooth 	import *
+from q1d_loc_length import *
+from q1d_step 	    import *
 
 if __name__ == "__main__":
 		  pass

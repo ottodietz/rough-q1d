@@ -9,29 +9,6 @@ import q1d_utils
 
 
 
-
-def HoleDaten(NrRepetitions,randomize=False):
-    L = 30*5*2./1000. # 30 Pins a 5mm, jeder Pin doppel (*3) in Meter (/1000)
-    if randomize:
-        reihe = 1
-    else:
-        reihe = 0
-    data = np.loadtxt("/home/otto/dat/corred_and_shuffeled.dat")[:,reihe]
-    data = (0.8 + data*0.2 )/100.; # in mm
-    data = q1d_utils.ZeroMean(data)
-    data,sigma = q1d_utils.NormVar(data)
-    data = np.array([ [ a ] * NrRepetitions for a in data]).flatten()
-    return [data,sigma,L]
-
-
-def HoleCNCDaten():
-       L=0.8
-       file = '/home/otto/dat/CNC/px260.dat'
-       achse,data=np.loadtxt(file,unpack=True)
-       data = q1d_utils.ZeroMean(data)/1000. # in Meter
-       data,sigma = q1d_utils.NormVar(data)
-       return [data,sigma,L]
-
 def rfftfreq(n_rfft,L):
     """ np.fft.fftfreq pendant for rfft: only generate positive  frequencies 
     Example:

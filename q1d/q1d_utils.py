@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 from q1d_smooth import *
 from q1d_loc_length import *
+import os.path
 
 c = 2.99792458e8 # m/s
 
@@ -96,7 +97,12 @@ def HoleDaten(NrRepetitions,randomize=False):
         reihe = 1
     else:
         reihe = 0
-    data = np.loadtxt("data/corred_and_shuffeled.dat")[:,reihe]
+
+    fn = 'corred_and_shuffeled.dat'
+    basepath = os.path.dirname(__file__)
+    filepath = os.path.abspath(os.path.join(basepath, "..", "data", fn))
+
+    data = np.loadtxt(filepath)[:,reihe]
     data = (0.8 + data*0.2 )/100.; # in mm
     data = ZeroMean(data)
     data,sigma = NormVar(data)
@@ -104,10 +110,10 @@ def HoleDaten(NrRepetitions,randomize=False):
     return [data,sigma,L]
 
 
-def HoleCNCDaten():
-       L=0.8
-       file = 'data/px260.dat'
-       achse,data=np.loadtxt(file,unpack=True)
+def HoleCNCDaten(fn='px260.dat',L=0.8):
+       basepath = os.path.dirname(__file__)
+       filepath = os.path.abspath(os.path.join(basepath, "..", "data", fn))
+       achse,data=np.loadtxt(filepath,unpack=True)
        data = ZeroMean(data)/1000. # in Meter
        data,sigma = NormVar(data)
        return [data,sigma,L]
