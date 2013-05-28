@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Description goes here: blah """
+""" Generate netgen mesh from python function """
 
 # make 2/1 = 0.5, instead of 0
 from __future__ import division
