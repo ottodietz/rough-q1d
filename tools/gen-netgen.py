@@ -56,28 +56,28 @@ y=a*np.sin(x*2*np.pi/L) * h			# Function for the roughtness
 ##### Functions
 
 # TODO: Points in einer liste speichern, dann weiter unten ausgeben
-def Point(N,X,Y):
-    """ 1 point defined """
-    f.write("%.i \t %f \t %f \n" % (N,X,Y))
+def Point(P,n,x,y):
+    P = np.vstack((P,[n,x,y]))
+    return P
 
 ## Rectangles
 # (X0,Y0) are the coordinates for the middle of the left side of the rectangle
 # L : lenght of the rectangle
 # H : hight of the rectangle
 
-def RectPoints(n,R,X0,Y0,L,H):	# R=1 for the first rectangle, R=2 for the second etc.
+def RectPoints(P,n,R,X0,Y0,L,H):	# R=1 for the first rectangle, R=2 for the second etc.
     """ 4 points defined for a rectangle """
-    Point((2*n+4*R+1),(X0+L),(Y0-H/2))
-    Point((2*n+4*R+2),(X0+L),(Y0+H/2))
-    Point((2*n+4*R+3),X0,(Y0+H/2))
-    Point((2*n+4*R+4),X0,(Y0-H/2))
+    Point(P,(2*n+4*R+1),(X0+L),(Y0-H/2))
+    Point(P,(2*n+4*R+2),(X0+L),(Y0+H/2))
+    Point(P,(2*n+4*R+3),X0,(Y0+H/2))
+    Point(P,(2*n+4*R+4),X0,(Y0-H/2))
 
-def WGcornersPoints(n,Lsin,La,Lb,H0):
+def WGcornersPoints(P,n,Lsin,La,Lb,H0):
     """ 4 points defined for the corners of the WG """
-    Point((2*n+1),(Lsin+La),(-H0/2.0))
-    Point((2*n+2),(Lsin+La),(+H0/2))
-    Point((2*n+3),(-Lb),(H0/2))
-    Point((2*n+4),(-Lb),(-H0/2))
+    Point(P,(2*n+1),(Lsin+La),(-H0/2.0))
+    Point(P,(2*n+2),(Lsin+La),(+H0/2))
+    Point(P,(2*n+3),(-Lb),(H0/2))
+    Point(P,(2*n+4),(-Lb),(-H0/2))
 
 #def Segment(dl,dr,p1,p2,bc):
 #    """ 1 segment defined """
@@ -113,38 +113,39 @@ def Rectangle(A,p1,p2,p3,p4, din,d1,d2,d3,d4, bc1,bc2,bc3,bc4):
     return A
 
 # To draw the corners of the WG
-# TODO: use A=add(A,...), instead of 
 def WGcorners(A,n,dinwg,doutrwg,douttwg,doutlwg,doutbwg, bcwgs,bcwg2):
     """ 6 segments defined to close the WG """
-    B=add(A,dinwg,doutbwg,(2*n),(2*n+1),bcwgs)
-    C=add(B,dinwg,doutrwg,(2*n+1),(2*n+2),bcwg2)
-    D=add(C,dinwg,douttwg,(2*n+2),n,bcwgs)
-    E=add(D,dinwg,douttwg,1,(2*n+3),bcwgs)
-    F=add(E,dinwg,doutlwg,(2*n+3),(2*n+4),bcwg2)
-    G=add(F,dinwg,doutbwg,(2*n+4),(n+1),bcwgs)
-    return G
+    A=add(A,dinwg,doutbwg,(2*n),(2*n+1),bcwgs)
+    A=add(A,dinwg,doutrwg,(2*n+1),(2*n+2),bcwg2)
+    A=add(A,dinwg,douttwg,(2*n+2),n,bcwgs)
+    A=add(A,dinwg,douttwg,1,(2*n+3),bcwgs)
+    A=add(A,dinwg,doutlwg,(2*n+3),(2*n+4),bcwg2)
+    A=add(A,dinwg,doutbwg,(2*n+4),(n+1),bcwgs)
+    return A
 
 
 ############## Generate Points
 
+P = []
+
 ## sinus at the top	
 # TODO: Hier Point() benutzen.
-linesh=zip(np.arange(1, len(x)+1),x,y+H0/2)			
-for lineh in linesh:
-        f.write("%.i \t %.4f \t %.4f \n" % lineh)
+linesh = np.arange(1, len(x)+1)			
+for i in linesh:
+    P = Point(P,i,x[i],y+H0/2)
 
 ## sinus at the bottom	
-linesb=zip(np.arange(len(x)+1, 2*len(x)+1),x,-y-H0/2)	
-for lineb in linesb:
-        f.write("%.i \t %.4f \t %.4f \n" % lineb)
+linesb = np.arange(len(x)+1, 2*len(x)+1)	
+for i in linesb:
+    P = Point(P,i,x[i],y+H0/2)
 
 ## Points for the corners of the WG 
-WGcornersPoints(n,Lsin,La,Lb,H0)
+WGcornersPoints(P,n,Lsin,La,Lb,H0)
 
 ## Points for the rectangles : here are defined all the points needed to draw the PML1, PML2, and the Substrat.
-RectPoints(n,1,(-Lb),0,(Lb+Lsin+La),H1)	
-RectPoints(n,2,(-Lb-l),0,(Lb+Lsin+La+2*l),H0)	
-RectPoints(n,3,(-Lb-l),0,(Lb+Lsin+La+2*l),H2)
+RectPoints(P,n,1,(-Lb),0,(Lb+Lsin+La),H1)	
+RectPoints(P,n,2,(-Lb-l),0,(Lb+Lsin+La+2*l),H0)	
+RectPoints(P,n,3,(-Lb-l),0,(Lb+Lsin+La+2*l),H2)
 
 ## Probe			(Useless if we don't want to draw a 'probe')
 #Re=3	# Number of rectangles
@@ -207,17 +208,20 @@ A=np.delete(A,deleteme,0)
 
 ####### We write everything into the file
 
+f=open(filename + '.in2d','w')	# open the text file
+f.write('splinecurves2dv2 \n%.i \npoints \n' % GradingFactor )	# these first lines are nessecary
+
 ####### Points
 #(Pt Nbr, x, y)
 
-f=open(filename + '.in2d','w')	# open the text file
-f.write('splinecurves2dv2 \n%.i \npoints \n' % GradingFactor )	# these first lines are nessecary
+for i in range(len(P)):
+    f.write("%i \t %.f \t %.f \n" % (int(P[i,0]),float(P[i,1]),float(P[i,2])))
 
 ###### Segments
 #(domain left    domain right    Nbr of Pts    point1    point2    bc)
 
 f.write('\nsegments \n')
-for i in range(len(A))
+for i in range(len(A)):
     f.write("%i \t %i \t %.i \t %.i \t %.i \t -bc=%.i \n" % (int(A[i,0]),int(A[i,1]),int(A[i,2]),int(A[i,3]),int(A[i,4]),int(A[i,5])))
 
 #### Materials
