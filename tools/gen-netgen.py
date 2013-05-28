@@ -86,8 +86,7 @@ def WGcornersPoints(P,n,Lsin,La,Lb,H0):
 
 # The function "add" adds a line in A
 def add(A,dl,dr,p1,p2,bc):
-    A=np.vstack((A,[dl,dr,2,p1,p2,bc]))
-    return A
+    return np.vstack((A,[dl,dr,2,p1,p2,bc]))
 
 # Polygon is used to draw the limits of the PML1 and of the substrat.
 def Polygon(A,p1,p2,p3,p4,p5,p6,p7,p8, din1,din2,din3,din4,dout1,dout2,dout3,dout4, bc1,bc2,bc3,bc4):
