@@ -57,8 +57,7 @@ y=a*np.sin(x*2*np.pi/L) * h			# Function for the roughtness
 
 # TODO: Points in einer liste speichern, dann weiter unten ausgeben
 def Point(P,n,x,y):
-    P = np.vstack((P,[n,x,y]))
-    return P
+    return np.vstack((P,[n,x,y]))
 
 ## Rectangles
 # (X0,Y0) are the coordinates for the middle of the left side of the rectangle
