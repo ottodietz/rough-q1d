@@ -7,9 +7,7 @@
 from __future__ import division
 
 import numpy as np
-import scipy as sp
 import matplotlib.pyplot as plt
-from scipy import arange, linspace
 
 
 filename = 'test' # .in2d will be added
@@ -55,9 +53,13 @@ y=a*np.sin(x*2*np.pi/L) * h			# Function for the roughtness
 
 ##### Functions
 
-# TODO: Points in einer liste speichern, dann weiter unten ausgeben
 def Point(P,n,x,y):
-    return np.vstack((P,[n,x,y]))
+    """ Add point to array. Create new array if array is empty """
+    if np.any(P):
+        return np.vstack((P,[n,x,y]))
+    else:
+        return np.array([n,x,y])
+
 
 ## Rectangles
 # (X0,Y0) are the coordinates for the middle of the left side of the rectangle
@@ -66,17 +68,19 @@ def Point(P,n,x,y):
 
 def RectPoints(P,n,R,X0,Y0,L,H):	# R=1 for the first rectangle, R=2 for the second etc.
     """ 4 points defined for a rectangle """
-    Point(P,(2*n+4*R+1),(X0+L),(Y0-H/2))
-    Point(P,(2*n+4*R+2),(X0+L),(Y0+H/2))
-    Point(P,(2*n+4*R+3),X0,(Y0+H/2))
-    Point(P,(2*n+4*R+4),X0,(Y0-H/2))
+    P=Point(P,(2*n+4*R+1),(X0+L),(Y0-H/2))
+    P=Point(P,(2*n+4*R+2),(X0+L),(Y0+H/2))
+    P=Point(P,(2*n+4*R+3),X0,(Y0+H/2))
+    P=Point(P,(2*n+4*R+4),X0,(Y0-H/2))
+    return P
 
 def WGcornersPoints(P,n,Lsin,La,Lb,H0):
     """ 4 points defined for the corners of the WG """
-    Point(P,(2*n+1),(Lsin+La),(-H0/2.0))
-    Point(P,(2*n+2),(Lsin+La),(+H0/2))
-    Point(P,(2*n+3),(-Lb),(H0/2))
-    Point(P,(2*n+4),(-Lb),(-H0/2))
+    P=Point(P,(2*n+1),(Lsin+La),(-H0/2.))
+    P=Point(P,(2*n+2),(Lsin+La),(+H0/2.))
+    P=Point(P,(2*n+3),(-Lb),(H0/2.))
+    P=Point(P,(2*n+4),(-Lb),(-H0/2.))
+    return P
 
 #def Segment(dl,dr,p1,p2,bc):
 #    """ 1 segment defined """
@@ -86,7 +90,10 @@ def WGcornersPoints(P,n,Lsin,La,Lb,H0):
 
 # The function "add" adds a line in A
 def add(A,dl,dr,p1,p2,bc):
-    return np.vstack((A,[dl,dr,2,p1,p2,bc]))
+    if np.any(A):
+        return np.vstack((A,[dl,dr,2,p1,p2,bc]))
+    else:
+        return np.array([dl,dr,2,p1,p2,bc])
 
 # Polygon is used to draw the limits of the PML1 and of the substrat.
 def Polygon(A,p1,p2,p3,p4,p5,p6,p7,p8, din1,din2,din3,din4,dout1,dout2,dout3,dout4, bc1,bc2,bc3,bc4):
@@ -123,27 +130,23 @@ def WGcorners(A,n,dinwg,doutrwg,douttwg,doutlwg,doutbwg, bcwgs,bcwg2):
 
 
 ############## Generate Points
-
 P = []
 
 ## sinus at the top	
-# TODO: Hier Point() benutzen.
-linesh = np.arange(1, len(x)+1)			
-for i in linesh:
-    P = Point(P,i,x[i],y+H0/2)
+for i in range(len(x)):
+    P = Point(P,i+1,x[i],y[i]+H0/2)
 
 ## sinus at the bottom	
-linesb = np.arange(len(x)+1, 2*len(x)+1)	
-for i in linesb:
-    P = Point(P,i,x[i],y+H0/2)
+for i in range(len(x)):
+    P = Point(P,len(x)+i+1,x[i],y[i]-H0/2)
 
 ## Points for the corners of the WG 
-WGcornersPoints(P,n,Lsin,La,Lb,H0)
+P = WGcornersPoints(P,n,Lsin,La,Lb,H0)
 
 ## Points for the rectangles : here are defined all the points needed to draw the PML1, PML2, and the Substrat.
-RectPoints(P,n,1,(-Lb),0,(Lb+Lsin+La),H1)	
-RectPoints(P,n,2,(-Lb-l),0,(Lb+Lsin+La+2*l),H0)	
-RectPoints(P,n,3,(-Lb-l),0,(Lb+Lsin+La+2*l),H2)
+P = RectPoints(P,n,1,(-Lb),0,(Lb+Lsin+La),H1)	
+P = RectPoints(P,n,2,(-Lb-l),0,(Lb+Lsin+La+2*l),H0)	
+P = RectPoints(P,n,3,(-Lb-l),0,(Lb+Lsin+La+2*l),H2)
 
 ## Probe			(Useless if we don't want to draw a 'probe')
 #Re=3	# Number of rectangles
@@ -213,7 +216,7 @@ f.write('splinecurves2dv2 \n%.i \npoints \n' % GradingFactor )	# these first lin
 #(Pt Nbr, x, y)
 
 for i in range(len(P)):
-    f.write("%i \t %.f \t %.f \n" % (int(P[i,0]),float(P[i,1]),float(P[i,2])))
+    f.write("%i \t %f \t %f \n" % (int(P[i,0]),float(P[i,1]),float(P[i,2])))
 
 ###### Segments
 #(domain left    domain right    Nbr of Pts    point1    point2    bc)
