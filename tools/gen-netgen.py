@@ -138,7 +138,7 @@ for i in range(len(x)):
 
 ## sinus at the bottom	
 for i in range(len(x)):
-    P = Point(P,len(x)+i+1,x[i],y[i]-H0/2)
+    P = Point(P,len(x)+i+1,x[i],-y[i]-H0/2)
 
 ## Points for the corners of the WG 
 P = WGcornersPoints(P,n,Lsin,La,Lb,H0)
