@@ -8,7 +8,18 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-t", "--type", default="1",
+                    help="set disorder type, 0: no disorder, 1: sine disorder" )
+args = parser.parse_args()
+DisorderType = int(args.type)
+print "Generate .in2d file for disorder type: " + str(DisorderType)
+
+##### Constants
+DisorderNone = 0 # 0: no disorder
+DisorderSine = 1 # 1: sin roughtness
 
 filename = 'test' # .in2d will be added
 ##### Variables
@@ -18,6 +29,7 @@ L=1.5	# Wavelenght of the roughtness
 T=10.0	# Number of periods 
 a=0.15	# Hight of the Sinus
 s=15	# Heaviside coefficient
+
 GradingFactor=2
 
 ## Geometrical parameters
@@ -132,13 +144,21 @@ def WGcorners(A,n,dinwg,doutrwg,douttwg,doutlwg,doutbwg, bcwgs,bcwg2):
 ############## Generate Points
 P = []
 
-## sinus at the top	
-for i in range(len(x)):
-    P = Point(P,i+1,x[i],y[i]+H0/2)
-
-## sinus at the bottom	
-for i in range(len(x)):
-    P = Point(P,len(x)+i+1,x[i],-y[i]-H0/2)
+if DisorderType == DisorderSine:
+	## sinus at the top	
+    for i in range(len(x)):
+        P = Point(P,i+1,x[i],y[i]+H0/2)
+	## sinus at the bottom	
+    for i in range(len(x)):
+        P = Point(P,len(x)+i+1,x[i],-y[i]-H0/2)
+elif DisorderType == DisorderNone:
+    n=2
+    P = Point(P,1,0,(+H0/2))
+    P = Point(P,n,Lsin,H0/2)
+    P = Point(P,2*n,Lsin,-H0/2)
+    P = Point(P,n+1,0,-H0/2)
+else: 
+    print "Error! No disorder type selected"
 
 ## Points for the corners of the WG 
 P = WGcornersPoints(P,n,Lsin,La,Lb,H0)
@@ -161,15 +181,20 @@ P = RectPoints(P,n,3,(-Lb-l),0,(Lb+Lsin+La+2*l),H2)
 # A=["#dl","dr",2,"p1","p2","-bc"]
 A = []
 
-## Sin at the top
-indh=np.arange(1,len(x))
-for ih in indh:
-    A=add(A,dst,dwg,ih,(ih+1),bcwgs)
-
-## Sin at the bottom
-indh=np.arange(len(x)+1,2*len(x))
-for ih in indh:
-    A=add(A,dwg,dsb,ih,(ih+1),bcwgs)
+if DisorderType == DisorderSine:
+	## Sin at the top
+    indh=np.arange(1,len(x))
+    for ih in indh:
+        A=add(A,dst,dwg,ih,(ih+1),bcwgs)
+	## Sin at the bottom
+    indh=np.arange(len(x)+1,2*len(x))
+    for ih in indh:
+        A=add(A,dwg,dsb,ih,(ih+1),bcwgs)
+elif DisorderType == DisorderNone:
+    A = add(A,dst,dwg,1,n,bcwgs)
+    A = add(A,dwg,dsb,n+1,2*n,bcwgs)
+else: 
+    print "Error! No disorder type selected"
 
 ## Corners of the WG
 A=WGcorners(A,n,dwg,dpml2r,dst,dpml2l,dsb, bcwgs,bcwgpml2)
@@ -227,13 +252,22 @@ for i in range(len(A)):
 
 #### Materials
 f.write('\nmaterials \n')
-f.write('1 \t domain1 \t -maxh=1 \n')
-f.write('2 \t domain2 \t -maxh=2 \n')
-f.write('3 \t domain3 \t -maxh=2 \n')
-f.write('4 \t domain4 \t -maxh=2 \n')
-f.write('5 \t domain5 \t -maxh=2 \n')
-f.write('6 \t domain6 \t -maxh=2 \n')
-f.write('7 \t domain7 \t -maxh=2 \n')
+
+#dwg=1	# WG
+#dst=2	# substrat at the top
+#dsb=3	# substrat at the bottom
+#dpml1t=4	# PML1 at the top
+#dpml1b=5	# PML1 at the bottom
+#dpml2l=6	# PML2 left
+#dpml2r=7	# PML2 right
+
+f.write('%i \t dwg \t -maxh=1 \n' % dwg)
+f.write('%i \t dst \t -maxh=2 \n' % dst)
+f.write('%i \t dsb \t -maxh=2 \n' % dsb)
+f.write('%i \t dpml1t \t -maxh=2 \n' % dpml1t)
+f.write('%i \t dpml1b \t -maxh=2 \n' % dpml1b)
+f.write('%i \t dpml2l \t -maxh=2 \n' % dpml2l)
+f.write('%i \t dpml2r \t -maxh=2 \n' % dpml2r)
 
 
 f.close()    
