@@ -9,6 +9,7 @@ from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import q1d
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--type", default="1",
@@ -20,12 +21,14 @@ print "Generate .in2d file for disorder type: " + str(DisorderType)
 ##### Constants
 DisorderNone = 0 # 0: no disorder
 DisorderSine = 1 # 1: sin roughtness
+DisorderFunction = 2 # la bonne fonction
+K = 15	# Proportionality factor between the 2 WG (big WG dimensions = K * small WG dimension)
 
 filename = 'test' # .in2d will be added
 ##### Variables
 
 n=100	# Number of points in 1 sinus
-L=1.5	# Wavelenght of the roughtness
+Lambda=1.5	# Wavelenght of the roughtness
 T=10.0	# Number of periods 
 a=0.15	# Hight of the Sinus
 s=15	# Heaviside coefficient
@@ -34,7 +37,7 @@ GradingFactor=2
 
 ## Geometrical parameters
 H0=1.5	# Hight of the WG
-Lsin=L*T	# Lenght of the roughtness
+Lsin=Lambda*T	# Lenght of the roughtness
 Lb=1.5	# Lenght before the roughtness
 La=1.5	# Lenght after the roughtness
 l=1.5	# Thickness of PML1
@@ -59,9 +62,12 @@ bcpml12=4
 bcout=5
 
 ## Shape of the roughtness
+## For a Sine disorder
 x=np.linspace(-0.1, Lsin+0.1, n)		
 h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-15)))	# Heaviside Function
-y=a*np.sin(x*2*np.pi/L) * h			# Function for the roughtness
+y=a*np.sin(x*2*np.pi/Lambda) * h			# Function for the roughtness
+## For the function used
+
 
 ##### Functions
 
@@ -152,11 +158,20 @@ if DisorderType == DisorderSine:
     for i in range(len(x)):
         P = Point(P,len(x)+i+1,x[i],-y[i]-H0/2)
 elif DisorderType == DisorderNone:
-    n=2
+    n = 2
     P = Point(P,1,0,(+H0/2))
     P = Point(P,n,Lsin,H0/2)
     P = Point(P,2*n,Lsin,-H0/2)
     P = Point(P,n+1,0,-H0/2)
+
+elif DisorderType == DisorderFunction:
+    data, sigma, L = q1d.HoleCNCDaten()
+    n = len(data)
+    Lsin = L*K
+    for i in range(len(data)):
+        P = Point(P,i+1,(Lsin/n)*i,data[i]*sigma*K+H0/2)	
+    for i in range(len(data)):
+        P = Point(P,len(data)+i+1,(Lsin/n)*i,-data[i]*sigma*K-H0/2)
 else: 
     print "Error! No disorder type selected"
 
@@ -193,6 +208,13 @@ if DisorderType == DisorderSine:
 elif DisorderType == DisorderNone:
     A = add(A,dst,dwg,1,n,bcwgs)
     A = add(A,dwg,dsb,n+1,2*n,bcwgs)
+elif DisorderType == DisorderFunction:
+    indh=np.arange(1,n)
+    for ih in indh:
+        A=add(A,dst,dwg,ih,(ih+1),bcwgs)
+    indh=np.arange(n+1,2*n)
+    for ih in indh:
+        A=add(A,dwg,dsb,ih,(ih+1),bcwgs)
 else: 
     print "Error! No disorder type selected"
 
