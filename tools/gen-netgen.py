@@ -19,21 +19,21 @@ DisorderType = int(args.type)
 print "Generate .in2d file for disorder type: " + str(DisorderType)
 
 ##### Constants
-DisorderNone = 0 # 0: no disorder
-DisorderSine = 1 # 1: sin roughtness
-DisorderFunction = 2 # la bonne fonction
+DisorderNone = 0 	# 0: no disorder
+DisorderSine = 1 	# 1: sin roughtness
+DisorderFunction = 2 	# la bonne fonction
 K = 15	# Proportionality factor between the 2 WG (big WG dimensions = K * small WG dimension)
 
 filename = 'test' # .in2d will be added
 ##### Variables
 
-n=100	# Number of points in 1 sinus
-Lambda=1.5	# Wavelenght of the roughtness
-T=10.0	# Number of periods 
-a=0.15	# Hight of the Sinus
-s=15	# Heaviside coefficient
+n = 100	# Number of points in 1 Sinus
+Lambda = 1.5	# Wavelenght of the roughtness
+T = 10.0	# Number of periods 
+a = 0.15	# Hight of the Sinus
+s = 15	# Heaviside coefficient
 
-GradingFactor=2
+GradingFactor = 2
 
 ## Geometrical parameters
 H0=1.5	# Hight of the WG
@@ -64,7 +64,7 @@ bcout=5
 ## Shape of the roughtness
 ## For a Sine disorder
 x=np.linspace(-0.1, Lsin+0.1, n)		
-h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-15)))	# Heaviside Function
+h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-Lsin)))	# Heaviside Function
 y=a*np.sin(x*2*np.pi/Lambda) * h			# Function for the roughtness
 ## For the function used
 
@@ -92,17 +92,6 @@ def RectPoints(P,n,R,X0,Y0,L,H):	# R=1 for the first rectangle, R=2 for the seco
     P=Point(P,(2*n+4*R+4),X0,(Y0-H/2))
     return P
 
-def WGcornersPoints(P,n,Lsin,La,Lb,H0):
-    """ 4 points defined for the corners of the WG """
-    P=Point(P,(2*n+1),(Lsin+La),(-H0/2.))
-    P=Point(P,(2*n+2),(Lsin+La),(+H0/2.))
-    P=Point(P,(2*n+3),(-Lb),(H0/2.))
-    P=Point(P,(2*n+4),(-Lb),(-H0/2.))
-    return P
-
-#def Segment(dl,dr,p1,p2,bc):
-#    """ 1 segment defined """
-#    f.write('%i \t %i \t 2 \t %.i \t %.i \t -bc=%d \n' % (dl,dr,p1,p2,bc))
     
 ## Segments : A is an array, each line defines a segment : (dl, dr, Nbr of pts = 2, P1, P2, bc)
 
@@ -176,7 +165,7 @@ else:
     print "Error! No disorder type selected"
 
 ## Points for the corners of the WG 
-P = WGcornersPoints(P,n,Lsin,La,Lb,H0)
+P = RectPoints(P,n,0,-Lb,0,Lsin+Lb+La,H0)
 
 ## Points for the rectangles : here are defined all the points needed to draw the PML1, PML2, and the Substrat.
 P = RectPoints(P,n,1,(-Lb),0,(Lb+Lsin+La),H1)	
@@ -219,21 +208,21 @@ else:
     print "Error! No disorder type selected"
 
 ## Corners of the WG
-A=WGcorners(A,n,dwg,dpml2r,dst,dpml2l,dsb, bcwgs,bcwgpml2)
+A = WGcorners(A,n,dwg,dpml2r,dst,dpml2l,dsb, bcwgs,bcwgpml2)
 
 ## First rectangle : PML2 left
-A=Rectangle(A,(2*n+4),(2*n+3),(2*n+11),(2*n+12), dpml2l,dwg,dpml1t,dout,dpml1b, bcwgpml2,bcpml12,bcout,bcpml12)
+A = Rectangle(A,(2*n+4),(2*n+3),(2*n+11),(2*n+12), dpml2l,dwg,dpml1t,dout,dpml1b, bcwgpml2,bcpml12,bcout,bcpml12)
 
 ## Second rectangle : PML2 right
-A=Rectangle(A,(2*n+9),(2*n+10),(2*n+2),(2*n+1),dpml2r,dout,dpml1t,dwg,dpml1b, bcout,bcpml12,bcwgpml2,bcpml12)
+A = Rectangle(A,(2*n+9),(2*n+10),(2*n+2),(2*n+1),dpml2r,dout,dpml1t,dwg,dpml1b, bcout,bcpml12,bcwgpml2,bcpml12)
 
 # Substrat
 #Rectangle((2*n+5),(2*n+6),(2*n+7),(2*n+8),dst,dpml1t,dpml1t,dpml1b,dpml1b, bcout,bcpml12,bcwgpml2,bcpml12)
-A=Polygon(A,(2*n+5),(2*n+1),(2*n+2),(2*n+6),(2*n+7),(2*n+3),(2*n+4),(2*n+8), dsb,dwg,dst,dwg, dpml1b,dpml2r,dpml1t,dpml2l, bcspml1,bcwgpml2,bcspml1,bcwgpml2)	
+A = Polygon(A,(2*n+5),(2*n+1),(2*n+2),(2*n+6),(2*n+7),(2*n+3),(2*n+4),(2*n+8), dsb,dwg,dst,dwg, dpml1b,dpml2r,dpml1t,dpml2l, bcspml1,bcwgpml2,bcspml1,bcwgpml2)	
 
 # PML
 #Rectangle((2*n+13),(2*n+14),(2*n+15),(2*n+16),dpml1t,dout,dout,dout,dout, bcout,bcpml12,bcwgpml2,bcpml12)
-A=Polygon(A,(2*n+13),(2*n+9),(2*n+10),(2*n+14),(2*n+15),(2*n+11),(2*n+12),(2*n+16), dpml1b,dpml2r,dpml1t,dpml2l, dout,dout,dout,dout, bcout,bcout,bcout,bcout)
+A = Polygon(A,(2*n+13),(2*n+9),(2*n+10),(2*n+14),(2*n+15),(2*n+11),(2*n+12),(2*n+16), dpml1b,dpml2r,dpml1t,dpml2l, dout,dout,dout,dout, bcout,bcout,bcout,bcout)
 
 ## Probe	 		(Useless if we don't want to draw a 'probe')
 #Segment(dinwg,dinwg,(2*n+4*Re+5),(2*n+4*Re+6),bcwg)
@@ -283,7 +272,7 @@ f.write('\nmaterials \n')
 #dpml2l=6	# PML2 left
 #dpml2r=7	# PML2 right
 
-f.write('%i \t dwg \t -maxh=1 \n' % dwg)
+f.write('%i \t dwg \t -maxh=2 \n' % dwg)
 f.write('%i \t dst \t -maxh=2 \n' % dst)
 f.write('%i \t dsb \t -maxh=2 \n' % dsb)
 f.write('%i \t dpml1t \t -maxh=2 \n' % dpml1t)
