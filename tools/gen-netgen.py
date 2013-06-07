@@ -20,31 +20,35 @@ print "Generate .in2d file for disorder type: " + str(DisorderType)
 
 ##### Constants
 DisorderNone = 0 	# 0: no disorder
-DisorderSine = 1 	# 1: sin roughtness
+DisorderSine = 1 	# 1: sin roughness
 DisorderFunction = 2 	# la bonne fonction
+u = 1	# length unit
+U = 'µm'	# unit
+print 'lengh unit: ' + str(u) + str(U)
 K = 15	# Proportionality factor between the 2 WG (big WG dimensions = K * small WG dimension)
 
 filename = 'test' # .in2d will be added
+
 ##### Variables
-
 n = 100	# Number of points in 1 Sinus
-Lambda = 1.5	# Wavelenght of the roughtness
+Lambda = 1.5*u	# Wavelenght of the roughness
 T = 10.0	# Number of periods 
-a = 0.15	# Hight of the Sinus
-s = 15	# Heaviside coefficient
+a = 0.15*u	# Hight of the Sinus
+s = 15/u	# Heaviside coefficient
+Rm = 0.07*u	# Minimal curve radius for sinus
 
-GradingFactor = 2
+GradingFactor = 2	# determines the size increasing or increasing speed of the mesh size
 
 ## Geometrical parameters
-H0=1.5	# Hight of the WG
-Lsin=Lambda*T	# Lenght of the roughtness
-Lb=1.5	# Lenght before the roughtness
-La=1.5	# Lenght after the roughtness
-l=1.5	# Thickness of PML1
-H1=3.0	# Hight of the substrat
-H2=6.0	# Hight of the PML1
+H0=1.5*u	# Hight of the WG
+Lsin=Lambda*T	# Lenght of the roughness
+Lb=1.5*u	# Lenght before the roughness
+La=1.5*u	# Lenght after the roughness
+l=1.5*u	# Thickness of PML1
+H1=3.0*u	# Hight of the substrat
+H2=6.0*u	# Hight of the PML1
 
-# Domains :
+# Domains
 dwg=1	# WG
 dst=2	# substrat at the top
 dsb=3	# substrat at the bottom
@@ -61,13 +65,27 @@ bcspml1=3
 bcpml12=4
 bcout=5
 
-## Shape of the roughtness
+## Shape of the roughness
 ## For a Sine disorder
-x=np.linspace(-0.1, Lsin+0.1, n)		
+x=np.linspace(-0.1*u, Lsin+0.1*u, n)		
 h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-Lsin)))	# Heaviside Function
-y=a*np.sin(x*2*np.pi/Lambda) * h			# Function for the roughtness
-## For the function used
+y=a*np.sin(x*2*np.pi/Lambda) * h			# Function for the roughness
 
+# Calculation of the minimal curve Radius
+def Radius(Lambda,x):
+    """ Calculates the minimal curve radius, using the expression of the curve radius of a function expressed in cartesian coordinates """
+    R = abs((Lambda/(2*np.pi))**2 * (1+(2*np.pi/Lambda*np.cos(x*2*np.pi/Lambda))**2)**(3/2) / np.sin(x*2*np.pi/Lambda))
+    Rmin = min(R)
+    print 'Rmin = ' + str(Rmin) + str(U)
+    return Rmin
+
+# Loop: to have a minimal curve radius > Rm
+Rmin = Radius(Lambda,x)
+while Rmin < Rm:
+    Lambda = Lambda * 1.1
+    Rmin = Radius(Lambda,x)
+
+y=a*np.sin(x*2*np.pi/Lambda) * h
 
 ##### Functions
 
