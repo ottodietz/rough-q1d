@@ -299,4 +299,87 @@ f.write('%i \t dpml2l \t -maxh=2 \n' % dpml2l)
 f.write('%i \t dpml2r \t -maxh=2 \n' % dpml2r)
 
 
-f.close()    
+f.close() 
+
+### Potential function
+m = 0.067*9.1e-31	# electron effective mass (kg)
+dz = 0.03 	# points intervall points for V
+Nz = 71	# Total points number in the potential: has to be even
+V0 = 5	# Potential's value at the sides of the WG (meV)
+w0 = np.sqrt(2*V0*1e-3*1.6e-19/((0.5*H0*1e-6)**2*m))	# Frequence (Hz) whithout roughness
+V = []	# Potential(x,y) (everywhere)
+w = [None]*n	# Omega(x)
+
+# For each roughness type, we calculate the new Omega for every x.
+# Then we define, for every x, the z coordinate (which goes through the WG), and we calculate the value of the potential for every z. Then we have to assign the value V0 to the points that are outside the WG. 
+
+if DisorderType == DisorderSine:
+    for i in range(n):
+        w[i] = w0 * H0/2 / (y[i]+H0/2) 	# Calculation of each value of Omega along the roughness
+        Nint = int((H0+2*y[i])/dz)		# Nint is the number of points defined to calculate the potential into the WG
+        if int(Nint/2.) == Nint/2.:		# Nint has to be even
+            Nint = Nint + 1		# if it was not before, now it is.
+        z = np.linspace(-y[i]-H0/2,y[i]+H0/2,Nint)
+        a = int((Nz - Nint)/2)		# a is the number of points out the WG, on each side
+        V2 = [None]*Nz
+        for j in range(a,int(Nint+a)):
+            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3	# Potential calculation (meV)
+        for k in range(a):				# We assign the value V0 to the points outside of the WG 
+            V2[k] = V0
+            V2[Nint+a+k] = V0
+        if np.any(V):		# fill an array with the values of the potential 
+            V = np.vstack((V, V2))
+        else:
+            V = np.array(V2)
+
+elif DisorderType == DisorderNone:
+    for i in range(n):
+        w[i] = w0 * H0/2 / (y[i]+H0/2) 
+        Nint = int((H0+2*y[i])/dz)
+        if int(Nint/2.) == Nint/2.:		# To have Nint even
+            Nint = Nint + 1	
+        z = np.linspace(-y[i]-H0/2,y[i]+H0/2,Nint)
+        a = int((Nz - Nint)/2)
+        V2 = [None]*Nz
+        for j in range(a,int(Nint+a)):
+            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3
+        for k in range(a):
+            V2[k] = V0
+            V2[Nint+a+k] = V0
+        if np.any(V):
+            V = np.vstack((V, V2))
+        else:
+            V = np.array(V2)
+
+elif DisorderType == DisorderFunction:
+    n = int(n/10)	# to have less points
+    for i in range(int(n)):
+        w[i] = w0 * H0/2 / (data[10*i]*sigma*K+H0/2) 
+        Nint = int((H0+2*data[10*i]*sigma*K)/dz)
+        if int(Nint/2.) == Nint/2.:		# To have Nint even
+            Nint = Nint + 1	
+        z = np.linspace(-data[10*i]*sigma*K-H0/2,data[10*i]*sigma*K+H0/2,Nint)
+        a = int((Nz - Nint)/2)
+        V2 = [None]*Nz
+        for j in range(a,int(Nint+a)):
+            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3
+        for k in range(a):
+            V2[k] = V0
+            V2[Nint+a+k] = V0
+        if np.any(V):
+            V = np.vstack((V, V2))
+        else:
+            V = np.array(V2)
+else: 
+    print "Error! No disorder type selected"
+
+
+
+### Print the potentiel into a .txt file
+g=open('potentiel.txt', 'w')
+for i in range(n):
+    for j in range(Nz):
+         g.write('%.4f \n' % float(V[i,j]))
+    g.write('\n')
+g.close()
+
