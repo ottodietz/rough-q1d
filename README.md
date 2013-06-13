@@ -5,7 +5,7 @@ Tools to analyse rough boundary in quasi-one dimensional systems for python.
 
 To clone this repository do
 ```
-git clone git://github.com/ottodietz/rough-q1d.git
+git clone git@github.com:ottodietz/rough-q1d.git
 ```
 You might want to add the following line to your ~/.bashrc, to add rough-q1d to your module search-path:
 
