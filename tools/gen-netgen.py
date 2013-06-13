@@ -14,17 +14,22 @@ import q1d
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--type", default="1",
                     help="set disorder type, 0: no disorder, 1: sine disorder" )
+parser.add_argument("-R", "--radius", default="0.07",
+                    help="set the value (in µm) of the minimal curvature radius for the roughness function" )
 args = parser.parse_args()
+
 DisorderType = int(args.type)
+u = 1	# length unit
+U = 'µm'	# unit
+Rm = float(args.radius)*u
 print "Generate .in2d file for disorder type: " + str(DisorderType)
 
 ##### Constants
 DisorderNone = 0 	# 0: no disorder
 DisorderSine = 1 	# 1: sin roughness
 DisorderFunction = 2 	# la bonne fonction
-u = 1	# length unit
-U = 'µm'	# unit
-print 'lengh unit: ' + str(u) + str(U)
+
+print 'length unit: ' + str(u) + str(U)
 K = 15	# Proportionality factor between the 2 WG (big WG dimensions = K * small WG dimension)
 
 filename = 'test' # .in2d will be added
@@ -35,7 +40,6 @@ Lambda = 1.5*u	# Wavelenght of the roughness
 T = 10.0	# Number of periods 
 a = 0.15*u	# Hight of the Sinus
 s = 15/u	# Heaviside coefficient
-Rm = 0.07*u	# Minimal curve radius for sinus
 
 GradingFactor = 2	# determines the size increasing or increasing speed of the mesh size
 
@@ -65,35 +69,35 @@ bcspml1=3
 bcpml12=4
 bcout=5
 
-## Shape of the roughness
-## For a Sine disorder
-x=np.linspace(-0.1*u, Lsin+0.1*u, n)		
-h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-Lsin)))	# Heaviside Function
-y=a*np.sin(x*2*np.pi/Lambda) * h			# Function for the roughness
+## Shape of the Sine roughness
+def genBoundarySin(x,h,Lambda):
+    return a*np.sin(x*2*np.pi/Lambda) * h		
 
 # Calculation of the minimal curve Radius
 def Radius(Lambda,x):
     """ Calculates the minimal curve radius, using the expression of the curve radius of a function expressed in cartesian coordinates """
     R = abs((Lambda/(2*np.pi))**2 * (1+(2*np.pi/Lambda*np.cos(x*2*np.pi/Lambda))**2)**(3/2) / np.sin(x*2*np.pi/Lambda))
     Rmin = min(R)
-    print 'Rmin = ' + str(Rmin) + str(U)
     return Rmin
 
-# Loop: to have a minimal curve radius > Rm
-Rmin = Radius(Lambda,x)
-while Rmin < Rm:
-    Lambda = Lambda * 1.1
-    Rmin = Radius(Lambda,x)
-
-y=a*np.sin(x*2*np.pi/Lambda) * h
+def Curvature(Lambda,Rm,N):
+    """ Look for the smallest wavelegth to have a minimal curve radius > Rm """
+    L = ([Lambda*(1+0.01*n) for n in range(N)])
+    R = np.array([Radius(Lambda*(1+0.01*n),x) for n in range(N)])
+    R1 = R[R >= Rm]
+    R1 = min(R1)
+    Lambda = L[int(np.where((R == R1))[0])]
+    print 'Lambda = ' + str(Lambda) + str(U)
+    print 'R = ' + str(R1) + str(U)
+    return Lambda
 
 ##### Functions
 
 def Point(P,n,x,y):
     """ Add point to array. Create new array if array is empty """
-    if np.any(P):
-        return np.vstack((P,[n,x,y]))
-    else:
+    if np.any(P):	# if P already exists, a line is added at the end of the array
+        return np.vstack((P,[n,x,y]))	
+    else:		# if P does not already exist, [n,x,y] becomes the first line of the array
         return np.array([n,x,y])
 
 
@@ -101,6 +105,7 @@ def Point(P,n,x,y):
 # (X0,Y0) are the coordinates for the middle of the left side of the rectangle
 # L : lenght of the rectangle
 # H : hight of the rectangle
+# For each rectangle, the points numbering begins with the corner at the bottom left, and we always turn into the directwise
 
 def RectPoints(P,n,R,X0,Y0,L,H):	# R=1 for the first rectangle, R=2 for the second etc.
     """ 4 points defined for a rectangle """
@@ -152,6 +157,16 @@ def WGcorners(A,n,dinwg,doutrwg,douttwg,doutlwg,doutbwg, bcwgs,bcwg2):
     A=add(A,dinwg,doutlwg,(2*n+3),(2*n+4),bcwg2)
     A=add(A,dinwg,doutbwg,(2*n+4),(n+1),bcwgs)
     return A
+
+####### Generate Sin Disorder
+x=np.linspace(-0.1*u, Lsin+0.1*u, n)		
+h=1/(1+np.exp(-s*(x))) - 1/(1+np.exp(-s*(x-Lsin)))	# Heaviside Function
+y = genBoundarySin(x,h,Lambda)
+
+# Change the disorder wavelength, to have a small enougth curvature
+Lambda = Curvature(Lambda,Rm,100)
+# Calculate y again, with the right wavelength
+y = genBoundarySin(x,h,Lambda)
 
 
 ############## Generate Points
@@ -246,7 +261,6 @@ A = Polygon(A,(2*n+13),(2*n+9),(2*n+10),(2*n+14),(2*n+15),(2*n+11),(2*n+12),(2*n
 #Segment(dinwg,dinwg,(2*n+4*Re+5),(2*n+4*Re+6),bcwg)
 
 ## Loop : we have to delete all double segments, so as to each line is defined only once.
-
 deleteme = np.array([])
 
 for i in range(len(A)):
@@ -282,14 +296,6 @@ for i in range(len(A)):
 #### Materials
 f.write('\nmaterials \n')
 
-#dwg=1	# WG
-#dst=2	# substrat at the top
-#dsb=3	# substrat at the bottom
-#dpml1t=4	# PML1 at the top
-#dpml1b=5	# PML1 at the bottom
-#dpml2l=6	# PML2 left
-#dpml2r=7	# PML2 right
-
 f.write('%i \t dwg \t -maxh=2 \n' % dwg)
 f.write('%i \t dst \t -maxh=2 \n' % dst)
 f.write('%i \t dsb \t -maxh=2 \n' % dsb)
@@ -298,88 +304,6 @@ f.write('%i \t dpml1b \t -maxh=2 \n' % dpml1b)
 f.write('%i \t dpml2l \t -maxh=2 \n' % dpml2l)
 f.write('%i \t dpml2r \t -maxh=2 \n' % dpml2r)
 
-
 f.close() 
 
-### Potential function
-m = 0.067*9.1e-31	# electron effective mass (kg)
-dz = 0.03 	# points intervall points for V
-Nz = 71	# Total points number in the potential: has to be even
-V0 = 5	# Potential's value at the sides of the WG (meV)
-w0 = np.sqrt(2*V0*1e-3*1.6e-19/((0.5*H0*1e-6)**2*m))	# Frequence (Hz) whithout roughness
-V = []	# Potential(x,y) (everywhere)
-w = [None]*n	# Omega(x)
-
-# For each roughness type, we calculate the new Omega for every x.
-# Then we define, for every x, the z coordinate (which goes through the WG), and we calculate the value of the potential for every z. Then we have to assign the value V0 to the points that are outside the WG. 
-
-if DisorderType == DisorderSine:
-    for i in range(n):
-        w[i] = w0 * H0/2 / (y[i]+H0/2) 	# Calculation of each value of Omega along the roughness
-        Nint = int((H0+2*y[i])/dz)		# Nint is the number of points defined to calculate the potential into the WG
-        if int(Nint/2.) == Nint/2.:		# Nint has to be even
-            Nint = Nint + 1		# if it was not before, now it is.
-        z = np.linspace(-y[i]-H0/2,y[i]+H0/2,Nint)
-        a = int((Nz - Nint)/2)		# a is the number of points out the WG, on each side
-        V2 = [None]*Nz
-        for j in range(a,int(Nint+a)):
-            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3	# Potential calculation (meV)
-        for k in range(a):				# We assign the value V0 to the points outside of the WG 
-            V2[k] = V0
-            V2[Nint+a+k] = V0
-        if np.any(V):		# fill an array with the values of the potential 
-            V = np.vstack((V, V2))
-        else:
-            V = np.array(V2)
-
-elif DisorderType == DisorderNone:
-    for i in range(n):
-        w[i] = w0 * H0/2 / (y[i]+H0/2) 
-        Nint = int((H0+2*y[i])/dz)
-        if int(Nint/2.) == Nint/2.:		# To have Nint even
-            Nint = Nint + 1	
-        z = np.linspace(-y[i]-H0/2,y[i]+H0/2,Nint)
-        a = int((Nz - Nint)/2)
-        V2 = [None]*Nz
-        for j in range(a,int(Nint+a)):
-            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3
-        for k in range(a):
-            V2[k] = V0
-            V2[Nint+a+k] = V0
-        if np.any(V):
-            V = np.vstack((V, V2))
-        else:
-            V = np.array(V2)
-
-elif DisorderType == DisorderFunction:
-    n = int(n/10)	# to have less points
-    for i in range(int(n)):
-        w[i] = w0 * H0/2 / (data[10*i]*sigma*K+H0/2) 
-        Nint = int((H0+2*data[10*i]*sigma*K)/dz)
-        if int(Nint/2.) == Nint/2.:		# To have Nint even
-            Nint = Nint + 1	
-        z = np.linspace(-data[10*i]*sigma*K-H0/2,data[10*i]*sigma*K+H0/2,Nint)
-        a = int((Nz - Nint)/2)
-        V2 = [None]*Nz
-        for j in range(a,int(Nint+a)):
-            V2[j] = (1/2.*m*w[i]**2 * (z[j-a]*1e-6)**2)/1.6e-19 * 1e3
-        for k in range(a):
-            V2[k] = V0
-            V2[Nint+a+k] = V0
-        if np.any(V):
-            V = np.vstack((V, V2))
-        else:
-            V = np.array(V2)
-else: 
-    print "Error! No disorder type selected"
-
-
-
-### Print the potentiel into a .txt file
-g=open('potentiel.txt', 'w')
-for i in range(n):
-    for j in range(Nz):
-         g.write('%.4f \n' % float(V[i,j]))
-    g.write('\n')
-g.close()
 
