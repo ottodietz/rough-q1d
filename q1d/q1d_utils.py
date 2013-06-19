@@ -92,7 +92,7 @@ def NormAutoCorr(x):
 
 
 def HoleDaten(NrRepetitions,randomize=False):
-    L = 30*5*2./1000. # 30 Pins a 5mm, jeder Pin doppel (*3) in Meter (/1000)
+    L = 30*5*2./1000. # 30 Pins a 5mm, jeder Pin doppel (*2) in Meter (/1000)
     if randomize:
         reihe = 1
     else:
@@ -103,7 +103,7 @@ def HoleDaten(NrRepetitions,randomize=False):
     filepath = os.path.abspath(os.path.join(basepath, "..", "data", fn))
 
     data = np.loadtxt(filepath)[:,reihe]
-    data = (0.8 + data*0.2 )/100.; # in mm
+    data = (0.8 + data*0.2 )/100.; # convert from cm to m
     data = ZeroMean(data)
     data,sigma = NormVar(data)
     data = np.array([ [ a ] * NrRepetitions for a in data]).flatten()
